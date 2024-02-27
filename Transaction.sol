@@ -6,56 +6,67 @@ contract Transactions {
     uint256 transactionCounts;
     mapping (address => uint) balanceOf;
 
-    event Transfer(address indexed sender, address indexed receiver, uint256 amount, string remark, uint256 timestamp);
+     address[] private admins;
+
+     constructor(address[] memory _admins){
+        admins = _admins;
+        id=0;
+     }
+
+    // event Transfer(address indexed sender, address indexed receiver, uint256 amount, string remark, uint256 timestamp);
 
     struct TransferStruct {
-        address sender;
-        address receiver;
-        uint256 amount;
+        string sender;
+        string receiver;
+        string amount;
         string remark;
         uint256 timestamp;
+        uint id;
     }
     
     TransferStruct[] transactions;
-
-    constructor() {
-        owner = msg.sender;
-        balanceOf[tx.origin] = msg.sender.balance;
-    }
+    mapping(uint=>TransferStruct)keyToTransaction;
+    uint private id; 
 
     function getOwner() public view returns (address) {
-        return owner;
+        return msg.sender;
     }
 
-    function sendMoney(address payable receiver, uint256 amount, string memory remark) public returns(bool success) {
-        if (balanceOf[owner] < amount) return false;
-        balanceOf[owner] -= amount;
-        balanceOf[receiver] += amount;
+    modifier authorizeUser{
+        bool isAdmin = false;
+        for (uint i = 0; i < admins.length; i++) {
+            if (msg.sender == admins[i]) {
+                isAdmin = true;
+                break;
+            }
+        }
 
-        transactionCounts += 1;
-        transactions.push(
-            TransferStruct(
-                owner,
-                receiver,
-                amount,
-                remark,
-                block.timestamp
-            )
-        );
+        require(isAdmin, "Unauthorized: Only admins can execute this function");
+        _; 
 
-        emit Transfer(msg.sender, receiver, amount, remark, block.timestamp);
-        return true;
     }
 
-    function getBalance(address addr) public view returns(uint) {
-        return balanceOf[addr];
+  function sendMoney(string memory sender,string memory receiver,string memory amount,string memory remark) public authorizeUser{
+
+     id+= 1;
+     TransferStruct memory transaction=TransferStruct(sender,
+            receiver,
+            amount,
+            remark,
+            block.timestamp,
+            id);
+    transactions.push(
+        transaction
+    );
+    keyToTransaction[id]=transaction;
     }
 
     function getAllTransactions() public view returns(TransferStruct[] memory) {
         return transactions;
     }
 
-    function getTransactionsCount() public view returns(uint256) {
-        return transactionCounts;
+   
+    function getTransaction(uint key) public  view returns (TransferStruct memory){
+        return keyToTransaction[key];
     }
-}
+} 
