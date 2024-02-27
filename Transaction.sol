@@ -6,67 +6,57 @@ contract Transactions {
     uint256 transactionCounts;
     mapping (address => uint) balanceOf;
 
-     address[] private admins;
-
-     constructor(address[] memory _admins){
-        admins = _admins;
-        id=0;
-     }
-
     // event Transfer(address indexed sender, address indexed receiver, uint256 amount, string remark, uint256 timestamp);
 
     struct TransferStruct {
-        string sender;
-        string receiver;
-        string amount;
+        address sender;
+        address receiver;
+        uint256 amount;
         string remark;
         uint256 timestamp;
-        uint id;
     }
     
     TransferStruct[] transactions;
-    mapping(uint=>TransferStruct)keyToTransaction;
-    uint private id; 
+
+   
 
     function getOwner() public view returns (address) {
         return msg.sender;
     }
 
-    modifier authorizeUser{
-        bool isAdmin = false;
-        for (uint i = 0; i < admins.length; i++) {
-            if (msg.sender == admins[i]) {
-                isAdmin = true;
-                break;
-            }
-        }
+  function sendMoney(address payable receiver,  string memory remark) public payable returns (bool){
+        
+    
+    require(msg.sender.balance >= msg.value, "Insufficient balance");
 
-        require(isAdmin, "Unauthorized: Only admins can execute this function");
-        _; 
+   
 
-    }
-
-  function sendMoney(string memory sender,string memory receiver,string memory amount,string memory remark) public authorizeUser{
-
-     id+= 1;
-     TransferStruct memory transaction=TransferStruct(sender,
-            receiver,
-            amount,
-            remark,
-            block.timestamp,
-            id);
+    transactionCounts += 1;
     transactions.push(
-        transaction
+        TransferStruct(
+            msg.sender,
+            receiver,
+            msg.value,
+            remark,
+            block.timestamp
+        )
     );
-    keyToTransaction[id]=transaction;
+    // payTo(receiver, amount);
+            (bool success, ) = receiver.call{value: msg.value}(""); 
+
+    return success;
+}
+
+        
+    function getBalance(address addr) public view returns(uint) {
+        return addr.balance;
     }
 
     function getAllTransactions() public view returns(TransferStruct[] memory) {
         return transactions;
     }
 
-   
-    function getTransaction(uint key) public  view returns (TransferStruct memory){
-        return keyToTransaction[key];
+    function getTransactionsCount() public view returns(uint256) {
+        return transactionCounts;
     }
 } 
